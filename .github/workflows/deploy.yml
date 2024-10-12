@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # 每次 push 到 main 分支时触发部署
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2  # 从仓库中拉取代码
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt  # 安装项目依赖
+
+    - name: Run tests
+      run: |
+        pytest backend/tests  # 运行测试
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.0  # 通过 SSH 将代码部署到服务器
+      with:
+        host: ${{ secrets.SERVER_IP }}         # 服务器IP地址
+        username: ${{ secrets.SSH_USER }}      # 服务器SSH用户
+        key: ${{ secrets.SSH_KEY }}            # 私钥（存储在 GitHub Secrets 中）
+        port: 22
+        script: |
+          cd /path/to/your/project  # 远程服务器上代码存放路径
+          git pull origin main  # 拉取最新代码
+          source venv/bin/activate  # 激活虚拟环境
+          pip install -r requirements.txt  # 安装依赖
+          systemctl restart your-service  # 重启你的服务
